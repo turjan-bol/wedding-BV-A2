@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boda Belén & Kevin</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fuentes Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        .font-script { font-family: 'Great Vibes', cursive; }
+        .font-serif { font-family: 'Cormorant Garamond', serif; }
+        .font-body { font-family: 'Montserrat', sans-serif; }
+        
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin 8s linear infinite; } /* Más lento para elegancia */
+        .animate-fade-up { animation: fadeUp 1.2s ease-out forwards; opacity: 0; transform: translateY(30px); }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        html { scroll-behavior: smooth; }
+
+        /* Clase personalizada para Arcos */
+        .rounded-arch {
+            border-top-left-radius: 9999px;
+            border-top-right-radius: 9999px;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+    </style>
+</head>
+<body class="bg-[#f2f4f3] text-[#4a4a4a] overflow-x-hidden">
+    <div id="root"></div>
+
+    <!-- React y ReactDOM -->
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0",
+                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                "lucide-react": "https://esm.sh/lucide-react@0.263.1"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import React, { useState, useEffect, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { Heart, Calendar, MapPin, Music, Clock, Gift, CheckCircle, Navigation, Gem, Volume2, VolumeX, Leaf, Stars } from 'lucide-react';
+
+        const WeddingInvitation = () => {
+            const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+            const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+            const [rsvpName, setRsvpName] = useState('');
+            const [rsvpGuests, setRsvpGuests] = useState(1);
+            const [rsvpSent, setRsvpSent] = useState(false);
+            
+            const audioRef = useRef(null);
+
+            // FECHA DE LA BODA
+            const weddingDate = new Date("2026-10-24T16:00:00").getTime();
+
+            // RUTAS LOCALES ORIGINALES
+            const heroImage = "./portada.png"; 
+            const musicUrl = "./audio.mp3";    
+            
+            const proposalImages = {
+                bride: "./img51.png", 
+                groom: "./img52.png" 
+            };
+
+            const galleryImages = [
+                "./img1.png", 
+                "./img2.png", 
+                "./img3.png", 
+                "./img4.png"  
+            ];
+
+            // Lógica del Temporizador
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    const now = new Date().getTime();
+                    const distance = weddingDate - now;
+                    if (distance < 0) clearInterval(timer);
+                    else {
+                        setTimeLeft({
+                            days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+                            hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                            minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+                            seconds: Math.floor((distance % (1000 * 60)) / 1000),
+                        });
+                    }
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            // Lógica de Audio (Igual que el original)
+            useEffect(() => {
+                const audio = audioRef.current;
+                const attemptPlay = () => {
+                    if (audio && audio.paused) {
+                        audio.volume = 0;
+                        audio.play().then(() => {
+                            setIsMusicPlaying(true);
+                            ['click', 'touchstart', 'touchmove', 'scroll', 'keydown'].forEach(evt => 
+                                document.removeEventListener(evt, attemptPlay)
+                            );
+                        }).catch(() => {});
+                    }
+                };
+                attemptPlay();
+                ['click', 'touchstart', 'touchmove', 'scroll', 'keydown'].forEach(evt => 
+                    document.addEventListener(evt, attemptPlay)
+                );
+                return () => {
+                    ['click', 'touchstart', 'touchmove', 'scroll', 'keydown'].forEach(evt => 
+                        document.removeEventListener(evt, attemptPlay)
+                    );
+                };
+            }, []);
+
+            // Fade in/out audio
+            useEffect(() => {
+                const audio = audioRef.current;
+                if (!audio) return;
+                const fadeDuration = 5;
+                const handleTimeUpdate = () => {
+                    const duration = audio.duration;
+                    const currentTime = audio.currentTime;
+                    if (isNaN(duration) || audio.paused) return;
+                    if (currentTime < fadeDuration) audio.volume = Math.min(1, currentTime / fadeDuration);
+                    else if (currentTime > duration - fadeDuration) audio.volume = Math.max(0, (duration - currentTime) / fadeDuration);
+                    else audio.volume = 1;
+                };
+                const handleEnded = () => {
+                    audio.currentTime = 0;
+                    audio.volume = 0;
+                    audio.play().catch(() => {});
+                };
+                audio.addEventListener('timeupdate', handleTimeUpdate);
+                audio.addEventListener('ended', handleEnded);
+                return () => {
+                    audio.removeEventListener('timeupdate', handleTimeUpdate);
+                    audio.removeEventListener('ended', handleEnded);
+                };
+            }, []);
+
+            const toggleMute = () => {
+                const audio = audioRef.current;
+                if (audio) {
+                    if (isMusicPlaying) { audio.pause(); setIsMusicPlaying(false); }
+                    else { audio.play().catch(() => {}); setIsMusicPlaying(true); }
+                }
+            };
+
+            const handleRSVP = (e) => {
+                e.preventDefault();
+                setTimeout(() => setRsvpSent(true), 1000);
+            };
+
+            const copyBankInfo = () => {
+                navigator.clipboard.writeText("123456789 - Banco Unión");
+                alert("Número de cuenta copiado al portapapeles");
+            };
+
+            // RENDERIZADO
+            return React.createElement(
+                'div',
+                { className: "min-h-screen font-serif selection:bg-emerald-100 border-[12px] border-white" }, // Marco blanco alrededor de todo el sitio
+                
+                // Audio
+                React.createElement('audio', { ref: audioRef, src: musicUrl, preload: "auto" }),
+
+                // Botón Música (Rediseñado: Minimalista)
+                React.createElement('button', {
+                    onClick: (e) => { e.stopPropagation(); toggleMute(); },
+                    className: `fixed bottom-8 right-8 z-50 p-4 rounded-full border border-stone-200 shadow-xl transition-all duration-500 ${isMusicPlaying ? 'bg-emerald-800 text-white animate-spin-slow' : 'bg-white text-stone-400'}`,
+                    title: isMusicPlaying ? "Silenciar" : "Activar"
+                }, isMusicPlaying ? React.createElement(Music, { size: 20 }) : React.createElement(VolumeX, { size: 20 })),
+
+                // Hero Section (Diseño Botánico)
+                React.createElement('header', { className: "relative min-h-screen flex flex-col justify-center items-center text-center overflow-hidden py-20 px-4" },
+                    // Decoraciones de fondo (Hojas abstractas con CSS)
+                    React.createElement('div', { className: "absolute top-0 left-0 w-64 h-64 bg-emerald-800/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" }),
+                    React.createElement('div', { className: "absolute bottom-0 right-0 w-96 h-96 bg-emerald-800/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" }),
+                    
+                    React.createElement('div', { className: "relative z-10 flex flex-col items-center max-w-2xl w-full" },
+                        // Etiqueta Superior
+                        React.createElement('div', { className: "flex items-center gap-3 mb-8" },
+                            React.createElement('div', { className: "h-[1px] w-12 bg-emerald-800" }),
+                            React.createElement('p', { className: "font-body text-xs tracking-[0.4em] uppercase text-emerald-900" }, "Save The Date"),
+                            React.createElement('div', { className: "h-[1px] w-12 bg-emerald-800" })
+                        ),
+
+                        // Foto Principal en Arco (Arch Shape)
+                        React.createElement('div', { className: "w-64 h-80 md:w-80 md:h-96 rounded-arch overflow-hidden shadow-2xl mb-10 relative group border-4 border-white" },
+                            React.createElement('img', { 
+                                src: heroImage, 
+                                alt: "Belén y Kevin", 
+                                className: "w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" 
+                            }),
+                            React.createElement('div', { className: "absolute inset-0 bg-emerald-900/10" })
+                        ),
+
+                        // Títulos
+                        React.createElement('h1', { className: "font-serif text-6xl md:text-8xl text-emerald-950 mb-4 leading-none tracking-tight" },
+                            "Belén ", React.createElement('span', { className: "font-script text-4xl md:text-6xl text-emerald-700 align-middle mx-2" }, "&"), " Kevin"
+                        ),
+                        
+                        React.createElement('p', { className: "font-body text-emerald-800/70 text-sm md:text-base uppercase tracking-widest mt-4 border-t border-b border-emerald-800/20 py-3 w-full max-w-xs mx-auto" }, 
+                            "24 . Octubre . 2026"
+                        )
+                    ),
+
+                    // Flecha indicadora
+                    React.createElement('div', { className: "absolute bottom-12 animate-bounce text-emerald-800/50" },
+                        React.createElement(Leaf, { size: 24, className: "rotate-180" })
+                    )
+                ),
+
+                // Navegación (Estilo Flotante Minimalista)
+                React.createElement('nav', { className: "sticky top-6 z-40 mx-auto max-w-min" },
+                    React.createElement('div', { className: "bg-white/80 backdrop-blur-md shadow-lg rounded-full px-8 py-3 flex space-x-8 font-body text-xs uppercase tracking-widest text-emerald-900 border border-white/50" },
+                        React.createElement('button', { onClick: () => document.getElementById('historia').scrollIntoView({behavior: 'smooth'}), className: "hover:text-emerald-600 transition-colors font-medium" }, "Historia"),
+                        React.createElement('button', { onClick: () => document.getElementById('detalles').scrollIntoView({behavior: 'smooth'}), className: "hover:text-emerald-600 transition-colors font-medium" }, "Detalles"),
+                        React.createElement('button', { onClick: () => document.getElementById('rsvp').scrollIntoView({behavior: 'smooth'}), className: "bg-emerald-800 text-white px-4 py-1 rounded-full hover:bg-emerald-700 transition-colors" }, "Confirmar")
+                    )
+                ),
+
+                React.createElement('main', { className: "max-w-5xl mx-auto px-6 py-20 space-y-32" },
+                    
+                    // Historia (Versículo)
+                    React.createElement('section', { id: "historia", className: "text-center scroll-mt-32 relative" },
+                        React.createElement(Stars, { size: 24, className: "text-emerald-600 mx-auto mb-6 opacity-50" }),
+                        React.createElement('blockquote', { className: "font-serif text-3xl md:text-4xl text-emerald-950 italic leading-relaxed max-w-3xl mx-auto" },
+                            "\"El amor es paciente, es bondadoso. El amor no tiene envidia, el amor no es jactancioso, no se envanece.\""
+                        ),
+                        React.createElement('cite', { className: "block mt-6 font-body text-xs tracking-widest text-emerald-700 uppercase not-italic" }, "— 1 Corintios 13:4 —")
+                    ),
+
+                    // Pedida de Mano (Diseño Asimétrico)
+                    React.createElement('section', { className: "scroll-mt-32" },
+                        React.createElement('div', { className: "flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24" },
+                            // Texto Lateral
+                            React.createElement('div', { className: "md:w-1/3 text-center md:text-right space-y-4" },
+                                React.createElement('h3', { className: "font-serif text-4xl text-emerald-950" }, "El Comienzo"),
+                                React.createElement('p', { className: "font-body text-stone-600 leading-relaxed" }, 
+                                    "Cada historia de amor es hermosa, pero la nuestra es mi favorita. El momento en que decidimos caminar juntos para siempre."
+                                ),
+                                React.createElement(Gem, { size: 32, className: "text-emerald-700 ml-auto mr-auto md:mr-0 mt-4" })
+                            ),
+                            
+                            // Fotos en Arcos Invertidos
+                            React.createElement('div', { className: "md:w-2/3 flex gap-4" },
+                                React.createElement('div', { className: "w-1/2 mt-12" },
+                                    React.createElement('div', { className: "rounded-arch overflow-hidden shadow-lg aspect-[3/4] border-b-8 border-emerald-800/10" },
+                                        React.createElement('img', { src: proposalImages.bride, className: "w-full h-full object-cover hover:scale-110 transition-transform duration-700" })
+                                    ),
+                                    React.createElement('p', { className: "text-center font-serif italic text-emerald-800 mt-2" }, "¡Dijo que sí!")
+                                ),
+                                React.createElement('div', { className: "w-1/2 -mt-12" },
+                                    React.createElement('div', { className: "rounded-arch overflow-hidden shadow-lg aspect-[3/4] border-b-8 border-emerald-800/10" },
+                                        React.createElement('img', { src: proposalImages.groom, className: "w-full h-full object-cover hover:scale-110 transition-transform duration-700" })
+                                    ),
+                                    React.createElement('p', { className: "text-center font-serif italic text-emerald-800 mt-2" }, "La pregunta")
+                                )
+                            )
+                        )
+                    ),
+
+                    // Galería (Estilo Mosaico Limpio)
+                    React.createElement('section', { className: "pt-12" },
+                        React.createElement('div', { className: "text-center mb-12" },
+                            React.createElement('span', { className: "font-script text-3xl text-emerald-600" }, "Momentos"),
+                            React.createElement('h3', { className: "font-serif text-4xl md:text-5xl text-emerald-950 mt-2" }, "Nuestra Historia")
+                        ),
+                        React.createElement('div', { className: "grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 px-2" },
+                            galleryImages.map((src, index) => 
+                                React.createElement('div', { key: index, className: "group relative overflow-hidden aspect-[4/5] cursor-crosshair" },
+                                    React.createElement('img', { 
+                                        src: src, 
+                                        className: "w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:sepia-[.3]" 
+                                    }),
+                                    // Overlay sutil
+                                    React.createElement('div', { className: "absolute inset-0 border border-white/20 group-hover:border-white/50 transition-colors m-2" })
+                                )
+                            )
+                        )
+                    ),
+
+                    // Cuenta Regresiva (Estilo Minimalista en Caja)
+                    React.createElement('section', { className: "bg-emerald-900 text-emerald-50 py-16 px-4 rounded-xl text-center relative overflow-hidden" },
+                        React.createElement('div', { className: "absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" }), // Patrón sutil si disponible, o solo color
+                        React.createElement('p', { className: "font-body text-xs uppercase tracking-[0.3em] mb-10 relative z-10" }, "Contando los segundos"),
+                        React.createElement('div', { className: "grid grid-cols-4 gap-4 max-w-2xl mx-auto relative z-10" },
+                            [
+                                { label: 'Días', value: timeLeft.days },
+                                { label: 'Horas', value: timeLeft.hours },
+                                { label: 'Minutos', value: timeLeft.minutes },
+                                { label: 'Segundos', value: timeLeft.seconds }
+                            ].map((item, index) => 
+                                React.createElement('div', { key: index, className: "flex flex-col items-center p-4 border border-emerald-700/50 rounded-lg backdrop-blur-sm" },
+                                    React.createElement('span', { className: "font-serif text-3xl md:text-5xl font-light mb-2" }, item.value),
+                                    React.createElement('span', { className: "font-body text-[10px] uppercase tracking-widest text-emerald-300" }, item.label)
+                                )
+                            )
+                        )
+                    ),
+
+                    // Detalles (Estilo Tarjetas)
+                    React.createElement('section', { id: "detalles", className: "grid md:grid-cols-2 gap-8 scroll-mt-32" },
+                        // Ceremonia
+                        React.createElement('div', { className: "bg-white p-10 border border-stone-100 shadow-sm hover:shadow-md transition-shadow text-center group" },
+                            React.createElement(Calendar, { size: 40, strokeWidth: 1, className: "mx-auto mb-6 text-emerald-700 group-hover:scale-110 transition-transform" }),
+                            React.createElement('h3', { className: "font-serif text-2xl text-emerald-950 mb-2" }, "Ceremonia"),
+                            React.createElement('div', { className: "w-10 h-[1px] bg-emerald-700 mx-auto mb-4" }),
+                            React.createElement('p', { className: "font-body text-sm font-medium uppercase tracking-wider mb-1" }, "Sábado 24 Octubre"),
+                            React.createElement('p', { className: "font-serif text-xl italic text-stone-600 mb-6" }, "16:00 Horas"),
+                            React.createElement('p', { className: "font-body text-sm text-stone-500 mb-6" }, "Iglesia La Sagrada Familia\nAv. Principal #123"),
+                            React.createElement('button', { className: "text-xs font-bold uppercase tracking-widest text-emerald-800 border-b border-emerald-800 hover:text-emerald-600 hover:border-emerald-600 transition-colors pb-1" }, "Ver Ubicación")
+                        ),
+                        // Recepción
+                        React.createElement('div', { className: "bg-white p-10 border border-stone-100 shadow-sm hover:shadow-md transition-shadow text-center group" },
+                            React.createElement(Music, { size: 40, strokeWidth: 1, className: "mx-auto mb-6 text-emerald-700 group-hover:scale-110 transition-transform" }),
+                            React.createElement('h3', { className: "font-serif text-2xl text-emerald-950 mb-2" }, "Recepción"),
+                            React.createElement('div', { className: "w-10 h-[1px] bg-emerald-700 mx-auto mb-4" }),
+                            React.createElement('p', { className: "font-body text-sm font-medium uppercase tracking-wider mb-1" }, "Sábado 24 Octubre"),
+                            React.createElement('p', { className: "font-serif text-xl italic text-stone-600 mb-6" }, "18:30 Horas"),
+                            React.createElement('p', { className: "font-body text-sm text-stone-500 mb-6" }, "Salón \"El Ensueño\"\nZona Norte, Calle 5"),
+                            React.createElement('button', { className: "text-xs font-bold uppercase tracking-widest text-emerald-800 border-b border-emerald-800 hover:text-emerald-600 hover:border-emerald-600 transition-colors pb-1" }, "Ver Ubicación")
+                        )
+                    ),
+
+                    // Itinerario (Timeline Vertical Limpio)
+                    React.createElement('section', { className: "max-w-2xl mx-auto" },
+                        React.createElement('div', { className: "text-center mb-12" },
+                            React.createElement('h3', { className: "font-serif text-4xl text-emerald-950" }, "Itinerario"),
+                        ),
+                        React.createElement('div', { className: "space-y-0 relative border-l border-emerald-200 ml-4 md:ml-0 md:border-none" },
+                            [
+                                { time: '16:00', event: 'Ceremonia Religiosa', icon: Heart },
+                                { time: '17:30', event: 'Sesión de Fotos', icon: Navigation },
+                                { time: '18:30', event: 'Recepción', icon: Music },
+                                { time: '20:00', event: 'Cena', icon: Clock },
+                                { time: '21:30', event: 'Fiesta', icon: Music }
+                            ].map((item, idx) => 
+                                React.createElement('div', { key: idx, className: "flex flex-col md:flex-row items-start md:items-center group mb-8 md:mb-12 relative" },
+                                    // Línea central para Desktop
+                                    React.createElement('div', { className: "hidden md:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-emerald-100 -translate-x-1/2 z-0" }),
+                                    
+                                    // Hora (Izquierda en Desktop)
+                                    React.createElement('div', { className: `md:w-1/2 md:pr-12 md:text-right pl-8 md:pl-0 mb-1 md:mb-0` },
+                                        React.createElement('span', { className: "font-serif text-2xl text-emerald-800 block" }, item.time)
+                                    ),
+                                    
+                                    // Icono Central
+                                    React.createElement('div', { className: "absolute left-0 md:left-1/2 w-8 h-8 -ml-4 md:-ml-4 bg-white border border-emerald-200 rounded-full flex items-center justify-center text-emerald-600 z-10 group-hover:bg-emerald-50 transition-colors" },
+                                        React.createElement(item.icon, { size: 14 })
+                                    ),
+                                    
+                                    // Evento (Derecha en Desktop)
+                                    React.createElement('div', { className: `md:w-1/2 md:pl-12 pl-8` },
+                                        React.createElement('span', { className: "font-body text-sm uppercase tracking-wider text-stone-600" }, item.event)
+                                    )
+                                )
+                            )
+                        )
+                    ),
+
+                    // Regalos y Dress Code
+                    React.createElement('section', { className: "bg-stone-100 p-8 md:p-12 rounded-xl text-center space-y-8" },
+                        React.createElement('div', { className: "grid md:grid-cols-2 gap-12" },
+                            React.createElement('div', { className: "space-y-3" },
+                                React.createElement('h4', { className: "font-serif text-xl font-bold text-emerald-900" }, "Dress Code"),
+                                React.createElement('p', { className: "font-body text-sm text-stone-600" }, "Formal / Etiqueta Rigurosa"),
+                                React.createElement('p', { className: "text-xs text-stone-400 italic" }, "* Evitar color blanco")
+                            ),
+                            React.createElement('div', { className: "space-y-3" },
+                                React.createElement('h4', { className: "font-serif text-xl font-bold text-emerald-900" }, "Regalos"),
+                                React.createElement('p', { className: "font-body text-sm text-stone-600" }, "Su presencia es nuestro mejor regalo."),
+                                React.createElement('button', { onClick: copyBankInfo, className: "mt-2 inline-flex items-center gap-2 bg-white border border-emerald-200 px-6 py-2 rounded-full text-emerald-800 text-xs font-bold uppercase tracking-widest hover:bg-emerald-50 transition-colors" },
+                                    React.createElement(Gift, { size: 14 }), "Datos Bancarios"
+                                )
+                            )
+                        )
+                    ),
+
+                    // RSVP (Formulario Limpio)
+                    React.createElement('section', { id: "rsvp", className: "max-w-xl mx-auto scroll-mt-32" },
+                        !rsvpSent ? 
+                            React.createElement('div', { className: "bg-white shadow-xl rounded-2xl overflow-hidden border border-emerald-100" },
+                                React.createElement('div', { className: "bg-emerald-900 py-8 px-6 text-center" },
+                                    React.createElement('h3', { className: "font-serif text-3xl text-emerald-50 mb-1" }, "Confirmación"),
+                                    React.createElement('p', { className: "text-emerald-200/60 text-xs uppercase tracking-widest" }, "R.S.V.P antes del 1 de Octubre")
+                                ),
+                                React.createElement('form', { onSubmit: handleRSVP, className: "p-8 space-y-6" },
+                                    React.createElement('div', { className: "space-y-1" },
+                                        React.createElement('label', { className: "text-xs font-bold uppercase text-stone-400 tracking-wider" }, "Nombre Completo"),
+                                        React.createElement('input', { 
+                                            type: "text", required: true, value: rsvpName, onChange: (e) => setRsvpName(e.target.value),
+                                            className: "w-full bg-stone-50 border border-stone-200 p-3 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors font-serif text-lg",
+                                            placeholder: "Tu nombre aquí"
+                                        })
+                                    ),
+                                    React.createElement('div', { className: "space-y-1" },
+                                        React.createElement('label', { className: "text-xs font-bold uppercase text-stone-400 tracking-wider" }, "Invitados"),
+                                        React.createElement('select', { 
+                                            value: rsvpGuests, onChange: (e) => setRsvpGuests(e.target.value),
+                                            className: "w-full bg-stone-50 border border-stone-200 p-3 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors font-serif text-lg cursor-pointer"
+                                        }, [1, 2, 3, 4, 5].map(n => React.createElement('option', { key: n, value: n }, `${n} Persona${n > 1 ? 's' : ''}`)))
+                                    ),
+                                    React.createElement('button', { 
+                                        type: "submit",
+                                        className: "w-full bg-emerald-800 text-white font-body text-xs font-bold uppercase tracking-[0.2em] py-4 rounded-lg hover:bg-emerald-900 transition-all shadow-lg hover:shadow-emerald-900/20"
+                                    }, "Enviar Confirmación")
+                                )
+                            )
+                        : 
+                            React.createElement('div', { className: "text-center py-16 animate-fade-up bg-white rounded-2xl shadow-lg border border-emerald-100" },
+                                React.createElement(CheckCircle, { size: 48, className: "text-emerald-500 mx-auto mb-4" }),
+                                React.createElement('h3', { className: "font-serif text-3xl text-emerald-900 mb-2" }, "¡Confirmado!"),
+                                React.createElement('p', { className: "text-stone-500 font-body max-w-xs mx-auto" }, `Gracias ${rsvpName}, nos emociona mucho contar contigo.`),
+                                React.createElement('p', { className: "font-script text-2xl text-emerald-600 mt-6" }, "Belén & Kevin")
+                            )
+                    ),
+                    
+                    // Footer
+                    React.createElement('footer', { className: "text-center py-12 border-t border-stone-200" },
+                        React.createElement('h2', { className: "font-serif text-2xl text-emerald-900 mb-2" }, "B & K"),
+                        React.createElement('p', { className: "font-body text-[10px] uppercase tracking-widest text-stone-400" }, "Con amor, 2026")
+                    )
+                )
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(WeddingInvitation));
+    </script>
+</body>
+</html>
